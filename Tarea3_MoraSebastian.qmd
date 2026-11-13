@@ -5,9 +5,67 @@ format:
   html:
     toc: true
     code-fold: true
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+  message: false
 ---
 
-# Introducción
+# 0 — Hoja de respuestas
 
+```{r, results='asis'}
+source("cod/funciones_tarea3.R")
+parametros.df <- read.csv2("config/parametros_tarea3.csv", stringsAsFactors = FALSE)
+parametros <- stats::setNames(parametros.df$valor, parametros.df$parametro)
+if (!file.exists("data/transacciones_2025.csv")) source("cod/01_datos.R")
+tx <- read.csv2("data/transacciones_2025.csv", stringsAsFactors = FALSE)
 
-# Ejercicios
+ventana <- as.integer(as.numeric(parametros[["ventana"]]))
+k.alerta <- as.numeric(parametros[["k.alerta"]])
+ej1 <- alerta.movil(tx, ventana, k.alerta)
+ej1.comun <- alerta.movil(tx, ventana = 7, k.alerta = 2)
+resultado.1a <- sum(ej1$alerta, na.rm = TRUE)
+resultado.1b <- min(ej1$fecha[ej1$alerta %in% TRUE])
+resultado.1c <- sum(ej1.comun$alerta, na.rm = TRUE)
+
+cat("Ejercicio 1 — Alertas por ventana móvil (15 pts)\n")
+cat(sprintf("RESULTADO_1A = %d\n", resultado.1a))
+cat("RESULTADO_1B = ", format(resultado.1b, "%Y-%m-%d"), "\n", sep = "")
+cat(sprintf("RESULTADO_1C = %d\n", resultado.1c))
+```
+
+# Ejercicio 1 — Alertas por ventana móvil
+
+Para cada fecha se cuenta el número de transacciones. La media y la desviación estándar muestral se calculan con los días anteriores; los primeros días, hasta completar la ventana, no se evalúan como alertas.
+
+La alerta se activa cuando el conteo del día supera la media de los días previos más k.alerta veces su desviación estándar.
+
+```{r}
+alertas.ej1 <- ej1[ej1$alerta %in% TRUE, c("fecha", "n.tx", "media", "desv")]
+knitr::kable(alertas.ej1, digits = 2, caption = "Días con alerta según los parámetros personales")
+```
+
+## Serie diaria
+
+```{r}
+grafico.ej1 <- ggplot2::ggplot(ej1, ggplot2::aes(x = fecha, y = n.tx)) +
+  ggplot2::geom_line(color = "#315A7D", linewidth = 0.6) +
+  ggplot2::geom_point(
+    data = ej1[ej1$alerta %in% TRUE, ],
+    color = "#C44536", size = 1.8
+  ) +
+  ggplot2::labs(
+    title = "Transacciones diarias y alertas",
+    subtitle = sprintf("Ventana: %s días; k.alerta: %s", ventana, k.alerta),
+    x = "Fecha", y = "Número de transacciones",
+    caption = "Los puntos rojos indican días de alerta."
+  ) +
+  ggplot2::theme_minimal(base_size = 11)
+
+ggplot2::ggsave(
+  filename = "info/figuras/ejercicio1_alertas.png",
+  plot = grafico.ej1, width = 9, height = 5, dpi = 300
+)
+grafico.ej1
+```
