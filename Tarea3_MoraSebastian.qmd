@@ -1,0 +1,13 @@
+---
+title: "Tarea 3 - Herramientas de Datos I"
+author: "Sebastian Mora"
+format:
+  html:
+    toc: true
+    code-fold: true
+---
+
+# Introducción
+
+
+# Ejercicios
