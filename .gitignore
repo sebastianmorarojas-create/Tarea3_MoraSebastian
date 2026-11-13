@@ -3,9 +3,6 @@
 .RData
 .Rproj.user/
 
-# Clon local de la base docente
-base/
-
 # Datos grandes generados para la tarea
 data/transacciones_2025.csv
 data/cantones.csv
