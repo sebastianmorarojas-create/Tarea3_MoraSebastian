@@ -124,3 +124,5 @@ grafico.ej2
 ```
 
 El canal analizado presenta un MAD de `r sprintf("%.4f", resultado.2a)`. El cantón con MAD más alto dentro de ese canal es **`r resultado.2b`**; `r resultado.2c` cantones superan 0,015. En el canal Web, el MAD más alto corresponde a **`r resultado.2d`**.
+
+Los máximos de MAD corresponden a cantones con pocas transacciones (Montes de Oca: n = 490; Esparza en Web: n = 181), así que la desviación por sí sola no demuestra fraude y debe interpretarse considerando el tamaño de muestra.
