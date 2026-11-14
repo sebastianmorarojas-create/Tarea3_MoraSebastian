@@ -56,3 +56,23 @@ alerta.movil <- function(df, ventana, k.alerta) {
     alerta = alerta
   )
 }
+
+#' Calcula la desviación absoluta media de los primeros dígitos.
+#'
+#' @param x vector numérico de montos.
+#' @return valor numérico MAD según la ley de Benford.
+benford.mad <- function(x) {
+  if (!is.numeric(x)) {
+    stop("x debe ser un vector numérico.")
+  }
+  montos <- x[is.finite(x) & x > 0]
+  if (length(montos) == 0L) {
+    stop("x debe contener al menos un monto positivo y finito.")
+  }
+
+  digitos <- floor(montos / 10^floor(log10(montos)))
+  observadas <- tabulate(as.integer(digitos), nbins = 9L) / length(digitos)
+  esperadas <- log10(1 + 1 / seq_len(9L))
+
+  mean(abs(observadas - esperadas))
+}
