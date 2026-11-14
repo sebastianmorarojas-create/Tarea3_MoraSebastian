@@ -76,3 +76,44 @@ benford.mad <- function(x) {
 
   mean(abs(observadas - esperadas))
 }
+
+#' Resume la desviación de Benford para cada cantón.
+#'
+#' @param df data.frame con cod_canton, canal y monto_crc.
+#' @param canal nombre del canal que se desea analizar.
+#' @param cantones data.frame con cod_canton y canton.
+#' @return data.frame ordenado de mayor a menor MAD.
+benford.canton <- function(df, canal, cantones) {
+  requeridas <- c("cod_canton", "canal", "monto_crc")
+  if (!is.data.frame(df) || !all(requeridas %in% names(df))) {
+    stop("df debe contener cod_canton, canal y monto_crc.")
+  }
+  if (length(canal) != 1L || is.na(canal) || !nzchar(canal)) {
+    stop("canal debe indicar un único canal.")
+  }
+  if (!is.data.frame(cantones) ||
+      !all(c("cod_canton", "canton") %in% names(cantones))) {
+    stop("cantones debe contener cod_canton y canton.")
+  }
+
+  datos <- df[df$canal == canal & is.finite(df$monto_crc) & df$monto_crc > 0, ]
+  if (nrow(datos) == 0L) stop("No hay montos válidos para el canal indicado.")
+  codigos <- unique(cantones$cod_canton)
+  salida <- lapply(codigos, function(codigo) {
+    montos <- datos$monto_crc[datos$cod_canton == codigo]
+    nombre <- cantones$canton[match(codigo, cantones$cod_canton)]
+    if (length(montos)) {
+      mad <- benford.mad(montos)
+      clase <- if (mad <= 0.006) "Conformidad cercana" else if (mad <= 0.012) {
+        "Conformidad aceptable"
+      } else if (mad <= 0.015) "Conformidad marginal" else "No conformidad"
+    } else {
+      mad <- NA_real_
+      clase <- "Sin datos"
+    }
+    data.frame(cod_canton = codigo, canton = nombre, n = length(montos),
+               mad = mad, clase = clase, stringsAsFactors = FALSE)
+  })
+  resultado <- do.call(rbind, salida)
+  resultado[order(resultado$mad, decreasing = TRUE, na.last = TRUE), ]
+}

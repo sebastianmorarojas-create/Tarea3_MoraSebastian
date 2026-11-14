@@ -69,3 +69,58 @@ ggplot2::ggsave(
 )
 grafico.ej1
 ```
+
+# Ejercicio 2 — Ley de Benford por cantón
+
+La función `benford.canton()` filtra el canal seleccionado, obtiene las frecuencias de los primeros dígitos de los montos y compara sus proporciones con las esperadas por la ley de Benford. El MAD corresponde al promedio de las diferencias absolutas; la clasificación sigue los rangos de Nigrini.
+
+```{r}
+cantones <- read.csv("data/cantones.csv", stringsAsFactors = FALSE)
+canal.benford <- parametros[["canal.benford"]]
+benford.app <- benford.canton(tx, canal.benford, cantones)
+benford.web <- benford.canton(tx, "Web", cantones)
+mad.completo <- benford.mad(tx$monto_crc[tx$canal == canal.benford])
+cantones.alerta <- sum(benford.app$mad > 0.015, na.rm = TRUE)
+cantones.app.ordenados <- benford.app[order(benford.app$mad, decreasing = TRUE), ]
+resultado.2a <- mad.completo
+resultado.2b <- cantones.app.ordenados$canton[1]
+resultado.2c <- cantones.alerta
+resultado.2d <- benford.web$canton[which.max(benford.web$mad)]
+
+cat(sprintf("RESULTADO_2A = %.4f\n", resultado.2a))
+cat(sprintf("RESULTADO_2B = %s\n", resultado.2b))
+cat(sprintf("RESULTADO_2C = %d\n", resultado.2c))
+cat(sprintf("RESULTADO_2D = %s\n", resultado.2d))
+```
+
+```{r}
+knitr::kable(benford.app, digits = 4,
+             caption = paste("MAD por cantón para el canal", canal.benford))
+```
+
+```{r}
+frecuencias.app <- vapply(1:9, function(d) {
+  sum(floor(tx$monto_crc[tx$canal == canal.benford & tx$monto_crc > 0] /
+      10^floor(log10(tx$monto_crc[tx$canal == canal.benford & tx$monto_crc > 0]))) == d)
+}, integer(1))
+proporcion.app <- frecuencias.app / sum(frecuencias.app)
+comparacion.benford <- data.frame(
+  digito = 1:9,
+  observada = proporcion.app,
+  esperada = log10(1 + 1 / (1:9))
+)
+grafico.ej2 <- ggplot2::ggplot(comparacion.benford, ggplot2::aes(x = digito)) +
+  ggplot2::geom_col(ggplot2::aes(y = observada), fill = "#315A7D", width = 0.65) +
+  ggplot2::geom_line(ggplot2::aes(y = esperada, group = 1), color = "#C44536", linewidth = 1) +
+  ggplot2::geom_point(ggplot2::aes(y = esperada), color = "#C44536", size = 2) +
+  ggplot2::labs(title = paste("Primer dígito: canal", canal.benford),
+                subtitle = sprintf("MAD general = %.4f", mad.completo),
+                x = "Primer dígito", y = "Proporción",
+                caption = "Barras: observado; línea: esperado según Benford.") +
+  ggplot2::theme_minimal(base_size = 11)
+ggplot2::ggsave("info/figuras/ejercicio2_benford.png", grafico.ej2,
+                width = 8, height = 5, dpi = 300)
+grafico.ej2
+```
+
+El canal analizado presenta un MAD de `r sprintf("%.4f", resultado.2a)`. El cantón con MAD más alto dentro de ese canal es **`r resultado.2b`**; `r resultado.2c` cantones superan 0,015. En el canal Web, el MAD más alto corresponde a **`r resultado.2d`**.
