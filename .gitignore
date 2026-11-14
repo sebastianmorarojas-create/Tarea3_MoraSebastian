@@ -6,3 +6,7 @@
 # Datos grandes generados para la tarea
 data/transacciones_2025.csv
 data/cantones.csv
+
+# Archivos locales auxiliares
+data/benford_agg_working.csv
+data/tarea_pdf-*.png
