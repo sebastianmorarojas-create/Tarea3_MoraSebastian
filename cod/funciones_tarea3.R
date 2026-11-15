@@ -117,3 +117,41 @@ benford.canton <- function(df, canal, cantones) {
   resultado <- do.call(rbind, salida)
   resultado[order(resultado$mad, decreasing = TRUE, na.last = TRUE), ]
 }
+
+#' Calcula el valor acumulado al cierre del año de los montos mensuales.
+#'
+#' @param df data.frame con fecha, canal y monto_crc.
+#' @param tasa.anual tasa efectiva anual como decimal.
+#' @param canal canal que se desea analizar.
+#' @return lista con tabla mensual, tasa mensual, valor acumulado e intereses.
+valor.acumulado <- function(df, tasa.anual, canal) {
+  requeridas <- c("fecha", "canal", "monto_crc")
+  if (!is.data.frame(df) || !all(requeridas %in% names(df))) {
+    stop("df debe contener fecha, canal y monto_crc.")
+  }
+  if (length(tasa.anual) != 1L || !is.numeric(tasa.anual) ||
+      !is.finite(tasa.anual) || tasa.anual <= -1) {
+    stop("tasa.anual debe ser un número finito mayor que -1.")
+  }
+  if (length(canal) != 1L || is.na(canal) || !nzchar(canal)) {
+    stop("canal debe indicar un único canal.")
+  }
+  fecha <- as.Date(df$fecha)
+  montos <- suppressWarnings(as.numeric(df$monto_crc))
+  if (anyNA(fecha) || any(!is.finite(montos))) {
+    stop("fecha y monto_crc deben contener valores válidos.")
+  }
+  seleccion <- df$canal == canal
+  if (!any(seleccion)) stop("No hay transacciones para el canal indicado.")
+  mes <- as.integer(format(fecha[seleccion], "%m"))
+  montos.agrupados <- rowsum(montos[seleccion], mes, reorder = TRUE)
+  montos.mes <- numeric(12L)
+  meses.presentes <- as.integer(rownames(montos.agrupados))
+  montos.mes[meses.presentes] <- as.numeric(montos.agrupados[, 1])
+  tasa.mensual <- (1 + tasa.anual)^(1 / 12) - 1
+  factor <- (1 + tasa.mensual)^(12 - seq_len(12L))
+  tabla <- data.frame(mes = seq_len(12L), monto = montos.mes, factor = factor)
+  va <- sum(tabla$monto * tabla$factor)
+  list(tabla = tabla, tasa.mensual = tasa.mensual, va = va,
+       interes = va - sum(tabla$monto))
+}
