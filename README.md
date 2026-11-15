@@ -9,7 +9,6 @@ Para reproducir el trabajo, abra `Tarea3_MoraSebastian.Rproj` en RStudio y ejecu
 
 ## Estructura
 
-- `base/`: archivos base provistos para la tarea.
 - `cod/`: scripts de R.
 - `data/`: datos de entrada y resultados generados.
 - `config/`: archivos de configuración.
