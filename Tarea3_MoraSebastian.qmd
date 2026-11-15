@@ -29,10 +29,30 @@ resultado.1a <- sum(ej1$alerta, na.rm = TRUE)
 resultado.1b <- min(ej1$fecha[ej1$alerta %in% TRUE])
 resultado.1c <- sum(ej1.comun$alerta, na.rm = TRUE)
 
+resultado.2a <- benford.mad(tx$monto_crc[tx$canal == parametros[["canal.benford"]]])
+cantones <- read.csv("data/cantones.csv", stringsAsFactors = FALSE)
+benford.app <- benford.canton(tx, parametros[["canal.benford"]], cantones)
+benford.web <- benford.canton(tx, "Web", cantones)
+benford.app.ordenados <- benford.app[order(benford.app$mad, decreasing = TRUE), ]
+resultado.2b <- benford.app.ordenados$canton[1]
+resultado.2c <- sum(benford.app$mad > 0.015, na.rm = TRUE)
+resultado.2d <- benford.web$canton[which.max(benford.web$mad)]
+ej3 <- valor.acumulado(tx, as.numeric(parametros[["tasa.anual"]]), parametros[["canal.interes"]])
+ej3.comun <- valor.acumulado(tx, 0.06, "App")
+resultado.3a <- ej3$va
+resultado.3b <- ej3$interes
+resultado.3c <- ej3.comun$va
 cat("Ejercicio 1 — Alertas por ventana móvil (15 pts)\n")
 cat(sprintf("RESULTADO_1A = %d\n", resultado.1a))
 cat("RESULTADO_1B = ", format(resultado.1b, "%Y-%m-%d"), "\n", sep = "")
 cat(sprintf("RESULTADO_1C = %d\n", resultado.1c))
+cat(sprintf("RESULTADO_2A = %.4f\n", resultado.2a))
+cat(sprintf("RESULTADO_2B = %s\n", resultado.2b))
+cat(sprintf("RESULTADO_2C = %d\n", resultado.2c))
+cat(sprintf("RESULTADO_2D = %s\n", resultado.2d))
+cat(sprintf("RESULTADO_3A = %.2f\n", resultado.3a))
+cat(sprintf("RESULTADO_3B = %.2f\n", resultado.3b))
+cat(sprintf("RESULTADO_3C = %.2f\n", resultado.3c))
 ```
 
 # Ejercicio 1 — Alertas por ventana móvil
@@ -87,10 +107,6 @@ resultado.2b <- cantones.app.ordenados$canton[1]
 resultado.2c <- cantones.alerta
 resultado.2d <- benford.web$canton[which.max(benford.web$mad)]
 
-cat(sprintf("RESULTADO_2A = %.4f\n", resultado.2a))
-cat(sprintf("RESULTADO_2B = %s\n", resultado.2b))
-cat(sprintf("RESULTADO_2C = %d\n", resultado.2c))
-cat(sprintf("RESULTADO_2D = %s\n", resultado.2d))
 ```
 
 ```{r}
@@ -126,3 +142,40 @@ grafico.ej2
 El canal analizado presenta un MAD de `r sprintf("%.4f", resultado.2a)`. El cantón con MAD más alto dentro de ese canal es **`r resultado.2b`**; `r resultado.2c` cantones superan 0,015. En el canal Web, el MAD más alto corresponde a **`r resultado.2d`**.
 
 Los máximos de MAD corresponden a cantones con pocas transacciones (Montes de Oca: n = 490; Esparza en Web: n = 181), así que la desviación por sí sola no demuestra fraude y debe interpretarse considerando el tamaño de muestra.
+
+# Ejercicio 3 — Valor acumulado
+
+Para cada mes se suman los montos del canal elegido. Cada suma se capitaliza hasta diciembre con la tasa efectiva mensual equivalente a la tasa anual indicada.
+
+```{r}
+knitr::kable(ej3$tabla, digits = 4, caption = paste("Montos mensuales y factores de acumulación para", parametros[["canal.interes"]]))
+cat(sprintf("Tasa efectiva mensual: %.8f\n\n", ej3$tasa.mensual))
+cat(sprintf("Valor acumulado: %.2f CRC\n\n", ej3$va))
+cat(sprintf("Intereses ganados: %.2f CRC\n", ej3$interes))
+```
+
+```{r}
+datos.grafico.ej3 <- rbind(
+  data.frame(mes = ej3$tabla$mes, serie = "Monto mensual", valor = ej3$tabla$monto),
+  data.frame(mes = ej3$tabla$mes, serie = "Valor al 31-dic", valor = ej3$tabla$monto * ej3$tabla$factor)
+)
+grafico.ej3 <- ggplot2::ggplot(
+  datos.grafico.ej3,
+  ggplot2::aes(x = factor(mes), y = valor, fill = serie)
+) +
+  ggplot2::geom_col(position = "dodge", width = 0.72) +
+  ggplot2::scale_fill_manual(values = c("Monto mensual" = "#315A7D", "Valor al 31-dic" = "#C44536")) +
+  ggplot2::labs(title = paste("Aportes mensuales y valor acumulado -", parametros[["canal.interes"]]),
+                x = "Mes", y = "CRC", fill = NULL,
+                caption = "Montos depositados al cierre de cada mes y su valor al 31 de diciembre.") +
+  ggplot2::theme_minimal(base_size = 11)
+ggplot2::ggsave("info/figuras/ejercicio3_valor_acumulado.png", grafico.ej3,
+                width = 8, height = 5, dpi = 300)
+grafico.ej3
+```
+
+
+
+
+
+
